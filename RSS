@@ -1,6 +1,8 @@
 """RSS
 Usage:
-  RSS [-s |--save] URL
+  RSS URL
+  RSS [-s |--save] URL -c CATEGORY
+  RSS [--category] CATEGORY
   RSS --title TITLE
   RSS (-h | --help)
   RSS --version
@@ -8,8 +10,10 @@ Usage:
 Options:
   -h --help     Show this screen.
   --version     Show version. 
-  -s --save     Saves The Domain after Getting the feed for the first time 
-  --title        Gets The feed from a given title if that title is saved 
+  -s --save     Saves The Domain after Getting the feed for the first time according to a category
+  --title       Gets The feed from a given title if that title is saved 
+  -c            Gets the category for saving 
+  --category    Gets the feeds from a list of urls that have the same category 
 """
 import requests as r 
 import xml.etree.ElementTree as ET
@@ -44,12 +48,12 @@ def Validate(url):
         exit(2)
 
 
-def Saving_Machine(url,Title):
+def Saving_Machine(url,Title,Category):
     filename = 'urls.csv'
     with open(filename, 'a', newline='') as csvfile:
-        fieldnames = ['Title', 'url']
+        fieldnames = ['Title', 'url','Category']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writerow({'Title': Title, 'url': url })
+        writer.writerow({'Title': Title, 'url': url ,'Category' : Category})
 
 
 
@@ -63,32 +67,67 @@ def Get_Feed_From_Title(title):
         print(f"{Fore.RED}The Requested Title is not present in the database{Style.RESET_ALL}")
         exit(1)
 
-def main(args):
-    if(args['--title']):
-        title = args['TITLE']
-        feed = Get_Feed_From_Title(title)
-    else:
-        url = args['URL']
 
-        Validate(url)    
+def Get_Feed_By_Category(category):
+    filename = 'urls.csv'
+    url_list = []
+    with open(filename, 'r', newline='') as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            if(row['Category'] == category):
+                url_list.append(row['url'])
+    if(len(url_list) == 0):
+        print(f"{Fore.RED}The Requested Ctaegory is not present in the database{Style.RESET_ALL}")
+        exit(1)
+    return url_list
 
-        feed = Get_feed(url)
 
+
+def Feed_Parser(feed):
     root = ET.fromstring(feed)
 
     Html_feed_Url = root.find('./channel/link').text 
     Title =  root.find('./channel/title').text 
     Description =  root.find('./channel/description').text 
 
-    if(args['--save'] == True):
-        Saving_Machine(url,Title)
+    return (Html_feed_Url,Title,Description)
 
-    print(Html_feed_Url)
-    print(Description)
+def main(args):
+    if(args['--title']):
+        title = args['TITLE']
+        feed = Get_Feed_From_Title(title)
+    elif(args['--category']):
+        category = args['CATEGORY'] 
+        feed_list = Get_Feed_By_Category(category)
+        for i in feed_list:
+            print(Feed_Parser(Get_feed(i)))
+        exit(0)
+    else:
+        url = args['URL']
+
+        Validate(url)    
+
+        feed = Get_feed(url)
+ 
+    Html_url = Feed_Parser(feed)[0]
+    Title = Feed_Parser(feed)[1]
+    category = Feed_Parser(feed)[2]
+    
+    print(Html_url)
     print(Title)
+    print(category)
+
+    if(args['--save'] == True):
+        if(args['-c']):
+            category = args['CATEGORY']
+        else:
+            print(f"{Fore.RED}Please provide a category{Style.RESET_ALL}")
+            exit(1)
+        Saving_Machine(url,Title,category)
+
+
 
 
 if __name__ == '__main__':
     arguments = docopt(__doc__, version='RSS 0.1')
-    print(arguments)
     main(arguments)
