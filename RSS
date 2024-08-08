@@ -1,6 +1,7 @@
 """RSS
 Usage:
   RSS [-s |--save] URL
+  RSS --title TITLE
   RSS (-h | --help)
   RSS --version
 
@@ -8,6 +9,7 @@ Options:
   -h --help     Show this screen.
   --version     Show version. 
   -s --save     Saves The Domain after Getting the feed for the first time 
+  --title        Gets The feed from a given title if that title is saved 
 """
 import requests as r 
 import xml.etree.ElementTree as ET
@@ -16,15 +18,17 @@ import validators
 import sys
 from docopt import docopt
 import csv
+import colorama
+from colorama import Fore, Style
+
 example_url = 'https://cyber.harvard.edu/rss/examples/rss2sample.xml'
 example_url_2 = 'https://cyber.harvard.edu/rss/examples/sampleRss092.xml'
 
 def Get_feed(url):
     try:
         response = r.get(url)
-        print(response.status_code)
     except r.exceptions.RequestException as e:
-        print('could Not Access Ressources Try Again')
+        print(f"{Fore.RED}could Not Access Ressources Try Again{Style.RESET_ALL}")
         exit(1)
     return response.text
 
@@ -36,7 +40,7 @@ def Validate(url):
     if(Pattern.fullmatch(url) and valid):
         return True
     else:
-        print('please Provide a valid url')
+        print(f"{Fore.RED}please Provide a valid url{Style.RESET_ALL}")
         exit(2)
 
 
@@ -47,14 +51,28 @@ def Saving_Machine(url,Title):
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writerow({'Title': Title, 'url': url })
 
-    
+
+
+def Get_Feed_From_Title(title):
+    filename = 'urls.csv'
+    with open(filename, 'r', newline='') as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            if(row['Title'] == title):
+                return Get_feed(row['url'])
+        print(f"{Fore.RED}The Requested Title is not present in the database{Style.RESET_ALL}")
+        exit(1)
+
 def main(args):
+    if(args['--title']):
+        title = args['TITLE']
+        feed = Get_Feed_From_Title(title)
+    else:
+        url = args['URL']
 
-    url = args['URL']
+        Validate(url)    
 
-    Validate(url)    
-
-    feed = Get_feed(url)
+        feed = Get_feed(url)
 
     root = ET.fromstring(feed)
 
