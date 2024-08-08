@@ -1,0 +1,66 @@
+"""RSS
+Usage:
+  RSS [-s |--save] URL
+  RSS (-h | --help)
+  RSS --version
+
+Options:
+  -h --help     Show this screen.
+  --version     Show version. 
+  -s --save     Saves The Domain after Getting the feed for the first time 
+"""
+import requests as r 
+import xml.etree.ElementTree as ET
+import re 
+import validators 
+import sys
+from docopt import docopt
+
+example_url = 'https://cyber.harvard.edu/rss/examples/rss2sample.xml'
+example_url_2 = 'https://cyber.harvard.edu/rss/examples/sampleRss092.xml'
+
+def Get_feed(url):
+    try:
+        response = r.get(url)
+        print(response.status_code)
+    except r.exceptions.RequestException as e:
+        print('could Not Access Ressources Try Again')
+        exit(1)
+    return response.text
+
+
+#validation Machine 
+def Validate(url):
+    Pattern = re.compile(r'https://.*?\.xml')
+    valid = validators.url(url)
+    if(Pattern.fullmatch(url) and valid):
+        return True
+    else:
+        print('please Provide a valid url')
+        exit(2)
+
+
+def Saving_Machine(url):
+    pass
+def main(args):
+
+    url = args['URL']
+
+    Validate(url)    
+
+    feed = Get_feed(url)
+
+    root = ET.fromstring(feed)
+
+    Html_feed_Url = root.find('./channel/link').text 
+    Title =  root.find('./channel/title').text 
+    Description =  root.find('./channel/description').text 
+    print(Html_feed_Url)
+    print(Description)
+    print(Title)
+
+
+if __name__ == '__main__':
+    arguments = docopt(__doc__, version='RSS 0.1')
+    print(arguments)
+    main(arguments)
