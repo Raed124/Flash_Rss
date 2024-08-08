@@ -15,7 +15,7 @@ import re
 import validators 
 import sys
 from docopt import docopt
-
+import csv
 example_url = 'https://cyber.harvard.edu/rss/examples/rss2sample.xml'
 example_url_2 = 'https://cyber.harvard.edu/rss/examples/sampleRss092.xml'
 
@@ -40,8 +40,14 @@ def Validate(url):
         exit(2)
 
 
-def Saving_Machine(url):
-    pass
+def Saving_Machine(url,Title):
+    filename = 'urls.csv'
+    with open(filename, 'a', newline='') as csvfile:
+        fieldnames = ['Title', 'url']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writerow({'Title': Title, 'url': url })
+
+    
 def main(args):
 
     url = args['URL']
@@ -55,6 +61,10 @@ def main(args):
     Html_feed_Url = root.find('./channel/link').text 
     Title =  root.find('./channel/title').text 
     Description =  root.find('./channel/description').text 
+
+    if(args['--save'] == True):
+        Saving_Machine(url,Title)
+
     print(Html_feed_Url)
     print(Description)
     print(Title)
